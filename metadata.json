@@ -1,0 +1,6 @@
+{
+  "name": "Calm Space",
+  "description": "An autistic-friendly daily companion featuring visual routines, AAC communication cards, sensory check-in battery, grounding tools, and low-stimulus themes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
