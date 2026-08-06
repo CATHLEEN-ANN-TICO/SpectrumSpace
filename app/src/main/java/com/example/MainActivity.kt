@@ -142,8 +142,8 @@ class MainActivity : ComponentActivity() {
                     if (showAddStepDialog) {
                         AddRoutineStepDialog(
                             defaultCategory = selectedRoutineCategory,
-                            onAddStep = { cat, title, desc, mins ->
-                                viewModel.addCustomStep(cat, title, desc, mins)
+                            onAddStep = { cat, title, desc, mins, icon ->
+                                viewModel.addCustomStep(cat, title, desc, mins, icon)
                             },
                             onDismiss = { showAddStepDialog = false }
                         )

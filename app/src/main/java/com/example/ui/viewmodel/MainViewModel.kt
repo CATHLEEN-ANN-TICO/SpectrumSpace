@@ -92,7 +92,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    fun addCustomStep(category: String, title: String, description: String, durationMinutes: Int) {
+    fun addCustomStep(category: String, title: String, description: String, durationMinutes: Int, iconName: String = "CheckCircle") {
         viewModelScope.launch {
             val currentSteps = routineSteps.value
             val maxIndex = currentSteps.filter { it.routineCategory == category }.maxOfOrNull { it.orderIndex } ?: 0
@@ -101,6 +101,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                     routineCategory = category,
                     stepTitle = title,
                     description = description,
+                    iconName = iconName,
                     durationMinutes = durationMinutes,
                     orderIndex = maxIndex + 1
                 )
