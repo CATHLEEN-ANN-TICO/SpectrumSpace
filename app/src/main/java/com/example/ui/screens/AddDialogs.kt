@@ -120,14 +120,14 @@ fun AddCustomCardDialog(
 @Composable
 fun AddRoutineStepDialog(
     defaultCategory: String,
-    onAddStep: (category: String, title: String, description: String, durationMinutes: Int, iconName: String) -> Unit,
+    onAddStep: (category: String, title: String, description: String, durationMinutes: Int, iconName: String, reminderHour: Int, reminderMinute: Int, hasReminder: Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
         com.example.ui.components.VisualRoutineBuilderCard(
             defaultCategory = defaultCategory,
-            onSaveRoutineStep = { category, title, description, iconName, colorTag, durationMinutes ->
-                onAddStep(category, title, description, durationMinutes, iconName)
+            onSaveRoutineStep = { category, title, description, iconName, colorTag, durationMinutes, reminderHour, reminderMinute, hasReminder ->
+                onAddStep(category, title, description, durationMinutes, iconName, reminderHour, reminderMinute, hasReminder)
                 onDismiss()
             },
             onCancel = onDismiss

@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.content.Intent
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,11 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.db.UserSettingsEntity
+import com.example.ui.components.FocusModeComponent
 import com.example.ui.theme.*
 
 @Composable
@@ -29,12 +34,18 @@ fun SensorySettingsScreen(
     onUpdateThemePalette: (String) -> Unit,
     onUpdateHighContrast: (Boolean) -> Unit,
     onUpdateReduceAnimations: (Boolean) -> Unit,
+    onUpdateFocusMode: (Boolean) -> Unit,
     onUpdateFontScale: (Float) -> Unit,
     onUpdateSpeechSettings: (pitch: Float, rate: Float) -> Unit,
-    onTestVoice: (String) -> Unit
+    onTestVoice: (String) -> Unit,
+    onExportCsvData: () -> String
 ) {
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
     var pitchState by remember(userSettings.speechPitch) { mutableFloatStateOf(userSettings.speechPitch) }
     var rateState by remember(userSettings.speechRate) { mutableFloatStateOf(userSettings.speechRate) }
+    var exportPreviewText by remember { mutableStateOf<String?>(null) }
+    var showCopiedToast by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -160,6 +171,11 @@ fun SensorySettingsScreen(
                             fontWeight = FontWeight.Bold
                         )
                     }
+
+                    FocusModeComponent(
+                        isFocusModeActive = userSettings.highContrast && userSettings.reduceAnimations,
+                        onToggleFocusMode = { onUpdateFocusMode(it) }
+                    )
 
                     // High Contrast Toggle
                     Row(
@@ -341,5 +357,154 @@ fun SensorySettingsScreen(
                 }
             }
         }
+
+        // --- SECTION 5: Data Export & Therapist Reports ---
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("settings_export_card"),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FileDownload,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "Data Export & Therapist Reports",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Text(
+                        text = "Export your daily habits, sensory battery history, and safe space journal reflections as a CSV or text file for personal tracking or sharing with therapists.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                val csv = onExportCsvData()
+                                clipboardManager.setText(AnnotatedString(csv))
+                                showCopiedToast = true
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("copy_csv_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Copy CSV")
+                        }
+
+                        Button(
+                            onClick = {
+                                val csv = onExportCsvData()
+                                val sendIntent = Intent().apply {
+                                    action = Intent.ACTION_SEND
+                                    putExtra(Intent.EXTRA_SUBJECT, "Calm Space Wellness & Battery Report")
+                                    putExtra(Intent.EXTRA_TEXT, csv)
+                                    type = "text/plain"
+                                }
+                                val shareIntent = Intent.createChooser(sendIntent, "Export Report via")
+                                try {
+                                    context.startActivity(shareIntent)
+                                } catch (e: Exception) {
+                                    // fallback
+                                }
+                            },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(48.dp)
+                                .testTag("share_csv_button"),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(Icons.Default.Share, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Share Report")
+                        }
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            exportPreviewText = onExportCsvData()
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("preview_export_button"),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Icon(Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Preview Export Data")
+                    }
+
+                    if (showCopiedToast) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = "✓ Export data copied to clipboard successfully!",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (exportPreviewText != null) {
+        AlertDialog(
+            onDismissRequest = { exportPreviewText = null },
+            title = { Text("Export Data Preview") },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                ) {
+                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        item {
+                            Text(
+                                text = exportPreviewText ?: "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { exportPreviewText = null }) {
+                    Text("Close")
+                }
+            }
+        )
     }
 }

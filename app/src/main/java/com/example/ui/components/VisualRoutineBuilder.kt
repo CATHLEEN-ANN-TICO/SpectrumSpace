@@ -38,13 +38,17 @@ data class RoutineColorOption(
 @Composable
 fun VisualRoutineBuilderCard(
     defaultCategory: String = "Morning",
-    onSaveRoutineStep: (category: String, title: String, description: String, iconName: String, colorTag: String, durationMinutes: Int) -> Unit,
+    onSaveRoutineStep: (category: String, title: String, description: String, iconName: String, colorTag: String, durationMinutes: Int, reminderHour: Int, reminderMinute: Int, hasReminder: Boolean) -> Unit,
     onCancel: () -> Unit = {}
 ) {
     var stepTitle by remember { mutableStateOf("") }
     var stepDescription by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf(defaultCategory) }
     var durationMinutes by remember { mutableStateOf(10) }
+
+    var hasReminder by remember { mutableStateOf(true) }
+    var reminderHour by remember { mutableStateOf(8) }
+    var reminderMinute by remember { mutableStateOf(0) }
     
     val iconOptions = listOf(
         RoutineIconOption("Waking", "Wake Up", Icons.Default.WbSunny),
@@ -282,6 +286,110 @@ fun VisualRoutineBuilderCard(
                 )
             }
 
+            // Reminder Notification Section
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Trigger Local Notification Reminder",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Switch(
+                            checked = hasReminder,
+                            onCheckedChange = { hasReminder = it },
+                            modifier = Modifier.testTag("builder_reminder_switch")
+                        )
+                    }
+
+                    if (hasReminder) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Scheduled Alert Time:",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        TextButton(onClick = { if (reminderHour > 0) reminderHour-- else reminderHour = 23 }) {
+                                            Text("-", fontWeight = FontWeight.Bold)
+                                        }
+                                        Text(
+                                            text = String.format("%02d", reminderHour),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        TextButton(onClick = { if (reminderHour < 23) reminderHour++ else reminderHour = 0 }) {
+                                            Text("+", fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                                Text(":", fontWeight = FontWeight.Bold)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = MaterialTheme.colorScheme.surface
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        TextButton(onClick = { if (reminderMinute >= 5) reminderMinute -= 5 else reminderMinute = 55 }) {
+                                            Text("-", fontWeight = FontWeight.Bold)
+                                        }
+                                        Text(
+                                            text = String.format("%02d", reminderMinute),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                        TextButton(onClick = { if (reminderMinute <= 55) reminderMinute += 5 else reminderMinute = 0 }) {
+                                            Text("+", fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // Save & Cancel Actions
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -304,7 +412,10 @@ fun VisualRoutineBuilderCard(
                                 stepDescription.trim(),
                                 selectedIcon.name,
                                 selectedColor.name,
-                                durationMinutes
+                                durationMinutes,
+                                reminderHour,
+                                reminderMinute,
+                                hasReminder
                             )
                             stepTitle = ""
                             stepDescription = ""

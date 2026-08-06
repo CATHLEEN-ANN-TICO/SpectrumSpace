@@ -14,9 +14,11 @@ import kotlinx.coroutines.launch
         RoutineStepEntity::class,
         CommCardEntity::class,
         SensoryLogEntity::class,
-        UserSettingsEntity::class
+        UserSettingsEntity::class,
+        JournalEntryEntity::class,
+        HabitEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -24,6 +26,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun commCardDao(): CommCardDao
     abstract fun sensoryLogDao(): SensoryLogDao
     abstract fun userSettingsDao(): UserSettingsDao
+    abstract fun journalDao(): JournalDao
+    abstract fun habitDao(): HabitDao
+
 
     companion object {
         @Volatile
@@ -36,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "calm_space_database"
                 )
+                    .fallbackToDestructiveMigration()
                     .addCallback(DatabaseCallback(context.applicationContext))
                     .build()
                 INSTANCE = instance
@@ -293,6 +299,18 @@ abstract class AppDatabase : RoomDatabase() {
                     note = "Welcome to Calm Space! Your peaceful companion."
                 )
             )
+
+            // Initial Habits
+            val defaultHabits = listOf(
+                HabitEntity(title = "Drank Water", description = "Hydration is key for gentle energy.", iconName = "WaterDrop"),
+                HabitEntity(title = "Took Medication / Supplements", description = "Daily wellness routine.", iconName = "Medication"),
+                HabitEntity(title = "Morning Gentle Stretch", description = "Awaken the body with soft movement.", iconName = "Accessibility"),
+                HabitEntity(title = "Fresh Air / Sunlight", description = "Step outside or near a bright window.", iconName = "WbSunny"),
+                HabitEntity(title = "Mindful Breathing (5 mins)", description = "Calm nervous system reset.", iconName = "SelfImprovement")
+            )
+            for (habit in defaultHabits) {
+                database.habitDao().insertHabit(habit)
+            }
         }
     }
 }

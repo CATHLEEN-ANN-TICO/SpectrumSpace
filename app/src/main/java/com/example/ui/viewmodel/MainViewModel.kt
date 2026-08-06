@@ -22,6 +22,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
     val commCards: StateFlow<List<CommCardEntity>>
     val sensoryLogs: StateFlow<List<SensoryLogEntity>>
     val latestSensoryLog: StateFlow<SensoryLogEntity?>
+    val journalEntries: StateFlow<List<JournalEntryEntity>>
+    val habits: StateFlow<List<HabitEntity>>
+
 
     // Selected Routine Filter Category ("All", "Morning", "Sensory Break", "Evening")
     private val _selectedRoutineCategory = MutableStateFlow("All")
@@ -56,7 +59,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
 
         latestSensoryLog = repository.getLatestSensoryLog()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+        journalEntries = repository.getAllJournalEntries()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+        habits = repository.getAllHabits()
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     }
+
 
     override fun onInit(status: Int) {
         if (status == TextToSpeech.SUCCESS) {
@@ -92,7 +102,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
-    fun addCustomStep(category: String, title: String, description: String, durationMinutes: Int, iconName: String = "CheckCircle") {
+    fun addCustomStep(
+        context: android.content.Context,
+        category: String,
+        title: String,
+        description: String,
+        durationMinutes: Int,
+        iconName: String = "CheckCircle",
+        reminderHour: Int = 8,
+        reminderMinute: Int = 0,
+        hasReminder: Boolean = false
+    ) {
         viewModelScope.launch {
             val currentSteps = routineSteps.value
             val maxIndex = currentSteps.filter { it.routineCategory == category }.maxOfOrNull { it.orderIndex } ?: 0
@@ -103,9 +123,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
                     description = description,
                     iconName = iconName,
                     durationMinutes = durationMinutes,
-                    orderIndex = maxIndex + 1
+                    orderIndex = maxIndex + 1,
+                    reminderHour = reminderHour,
+                    reminderMinute = reminderMinute,
+                    hasReminder = hasReminder
                 )
             )
+
+            if (hasReminder) {
+                val calendar = java.util.Calendar.getInstance().apply {
+                    set(java.util.Calendar.HOUR_OF_DAY, reminderHour)
+                    set(java.util.Calendar.MINUTE, reminderMinute)
+                    set(java.util.Calendar.SECOND, 0)
+                    if (timeInMillis <= System.currentTimeMillis()) {
+                        add(java.util.Calendar.DAY_OF_YEAR, 1)
+                    }
+                }
+                com.example.utils.ReminderScheduler.scheduleReminder(
+                    context = context,
+                    id = (System.currentTimeMillis() % Int.MAX_VALUE).toInt(),
+                    title = "Routine Reminder: $title",
+                    message = description.ifBlank { "Time for your scheduled $category routine task ($durationMinutes mins)." },
+                    triggerAtMillis = calendar.timeInMillis
+                )
+            }
         }
     }
 
@@ -179,6 +220,59 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
+    // --- Safe Space Journal Actions ---
+    fun addJournalEntry(moodEmoji: String, moodTitle: String, reflectionText: String, isVoiceLogged: Boolean) {
+        viewModelScope.launch {
+            repository.insertJournalEntry(
+                JournalEntryEntity(
+                    moodEmoji = moodEmoji,
+                    moodTitle = moodTitle,
+                    reflectionText = reflectionText,
+                    isVoiceLogged = isVoiceLogged
+                )
+            )
+        }
+    }
+
+    fun deleteJournalEntry(entry: JournalEntryEntity) {
+        viewModelScope.launch {
+            repository.deleteJournalEntry(entry)
+        }
+    }
+
+    // --- Daily Habit Tracker Actions ---
+    fun toggleHabit(habit: HabitEntity) {
+        viewModelScope.launch {
+            val newState = !habit.isCompleted
+            val newStreak = if (newState) habit.streakCount + 1 else maxOf(0, habit.streakCount - 1)
+            val updated = habit.copy(
+                isCompleted = newState,
+                streakCount = newStreak,
+                lastCompletedDate = if (newState) java.time.LocalDate.now().toString() else habit.lastCompletedDate
+            )
+            repository.updateHabit(updated)
+        }
+    }
+
+    fun addHabit(title: String, description: String, iconName: String) {
+        viewModelScope.launch {
+            repository.insertHabit(
+                HabitEntity(
+                    title = title,
+                    description = description,
+                    iconName = iconName
+                )
+            )
+        }
+    }
+
+    fun deleteHabit(habit: HabitEntity) {
+        viewModelScope.launch {
+            repository.deleteHabit(habit)
+        }
+    }
+
+
     // --- Settings Actions ---
     fun updateThemePalette(palette: String) {
         viewModelScope.launch {
@@ -201,6 +295,13 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
         }
     }
 
+    fun updateFocusMode(enabled: Boolean) {
+        viewModelScope.launch {
+            val current = userSettings.value
+            repository.saveUserSettings(current.copy(highContrast = enabled, reduceAnimations = enabled))
+        }
+    }
+
     fun updateFontScale(scale: Float) {
         viewModelScope.launch {
             val current = userSettings.value
@@ -215,6 +316,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application), T
             repository.saveUserSettings(updated)
             applyTtsSettings()
         }
+    }
+
+    fun generateExportCsvData(): String {
+        val habitsList = habits.value
+        val logsList = sensoryLogs.value
+        val journalList = journalEntries.value
+
+        val sb = StringBuilder()
+        sb.append("# CALM SPACE WELLNESS & THERAPY EXPORT REPORT\n")
+        sb.append("# Generated on: ${java.time.LocalDateTime.now()}\n\n")
+
+        sb.append("=== DAILY HABITS ==-\n")
+        sb.append("ID,Title,Description,IsCompleted,StreakCount,LastCompletedDate\n")
+        habitsList.forEach { h ->
+            sb.append("${h.id},\"${h.title}\",\"${h.description}\",${h.isCompleted},${h.streakCount},${h.lastCompletedDate}\n")
+        }
+
+        sb.append("\n=== SENSORY BATTERY HISTORY ==-\n")
+        sb.append("ID,Timestamp,EnergyPercent,SensoryState,Note\n")
+        logsList.forEach { l ->
+            val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(l.timestamp))
+            sb.append("${l.id},$dateStr,${l.energyPercent},\"${l.sensoryState}\",\"${l.note.replace("\n", " ")}\"\n")
+        }
+
+        sb.append("\n=== SAFE SPACE JOURNAL REFLECTIONS ==-\n")
+        sb.append("ID,Timestamp,MoodEmoji,MoodTitle,ReflectionText,IsVoiceLogged\n")
+        journalList.forEach { j ->
+            val dateStr = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(j.timestamp))
+            sb.append("${j.id},$dateStr,\"${j.moodEmoji}\",\"${j.moodTitle}\",\"${j.reflectionText.replace("\n", " ")}\",${j.isVoiceLogged}\n")
+        }
+
+        return sb.toString()
     }
 
     override fun onCleared() {

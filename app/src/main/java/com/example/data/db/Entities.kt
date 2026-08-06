@@ -12,7 +12,10 @@ data class RoutineStepEntity(
     val iconName: String = "CheckCircle",
     val durationMinutes: Int = 5,
     val isCompleted: Boolean = false,
-    val orderIndex: Int = 0
+    val orderIndex: Int = 0,
+    val reminderHour: Int = 8,
+    val reminderMinute: Int = 0,
+    val hasReminder: Boolean = false
 )
 
 @Entity(tableName = "comm_cards")
@@ -45,3 +48,26 @@ data class UserSettingsEntity(
     val speechPitch: Float = 1.0f,
     val speechRate: Float = 0.9f // slightly calmer, slower speech default
 )
+
+@Entity(tableName = "journal_entries")
+data class JournalEntryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val timestamp: Long = System.currentTimeMillis(),
+    val moodEmoji: String = "😌",
+    val moodTitle: String = "Calm",
+    val reflectionText: String = "",
+    val isVoiceLogged: Boolean = false
+)
+
+@Entity(tableName = "habits")
+data class HabitEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val title: String,
+    val description: String = "",
+    val iconName: String = "WaterDrop",
+    val isCompleted: Boolean = false,
+    val streakCount: Int = 0,
+    val lastCompletedDate: String = ""
+)
+
+

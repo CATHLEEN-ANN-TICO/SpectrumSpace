@@ -80,3 +80,38 @@ interface UserSettingsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveSettings(settings: UserSettingsEntity)
 }
+
+@Dao
+interface JournalDao {
+    @Query("SELECT * FROM journal_entries ORDER BY timestamp DESC")
+    fun getAllEntries(): Flow<List<JournalEntryEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertEntry(entry: JournalEntryEntity): Long
+
+    @Delete
+    suspend fun deleteEntry(entry: JournalEntryEntity)
+
+    @Query("DELETE FROM journal_entries")
+    suspend fun clearEntries()
+}
+
+@Dao
+interface HabitDao {
+    @Query("SELECT * FROM habits")
+    fun getAllHabits(): Flow<List<HabitEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertHabit(habit: HabitEntity): Long
+
+    @Update
+    suspend fun updateHabit(habit: HabitEntity)
+
+    @Delete
+    suspend fun deleteHabit(habit: HabitEntity)
+
+    @Query("DELETE FROM habits")
+    suspend fun clearHabits()
+}
+
+

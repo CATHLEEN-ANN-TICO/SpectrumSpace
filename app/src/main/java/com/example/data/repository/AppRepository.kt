@@ -32,4 +32,16 @@ class AppRepository(private val database: AppDatabase) {
     // Settings
     fun getUserSettings(): Flow<UserSettingsEntity?> = database.userSettingsDao().getSettings()
     suspend fun saveUserSettings(settings: UserSettingsEntity) = database.userSettingsDao().saveSettings(settings)
+
+    // Journal Entries
+    fun getAllJournalEntries(): Flow<List<JournalEntryEntity>> = database.journalDao().getAllEntries()
+    suspend fun insertJournalEntry(entry: JournalEntryEntity) = database.journalDao().insertEntry(entry)
+    suspend fun deleteJournalEntry(entry: JournalEntryEntity) = database.journalDao().deleteEntry(entry)
+
+    // Habits
+    fun getAllHabits(): Flow<List<HabitEntity>> = database.habitDao().getAllHabits()
+    suspend fun insertHabit(habit: HabitEntity) = database.habitDao().insertHabit(habit)
+    suspend fun updateHabit(habit: HabitEntity) = database.habitDao().updateHabit(habit)
+    suspend fun deleteHabit(habit: HabitEntity) = database.habitDao().deleteHabit(habit)
 }
+

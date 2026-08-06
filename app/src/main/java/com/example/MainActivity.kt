@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.ui.components.ScreenTab
 import com.example.ui.components.SensoryBottomNav
@@ -31,6 +32,8 @@ class MainActivity : ComponentActivity() {
             val commCards by viewModel.commCards.collectAsStateWithLifecycle()
             val sensoryLogs by viewModel.sensoryLogs.collectAsStateWithLifecycle()
             val latestSensoryLog by viewModel.latestSensoryLog.collectAsStateWithLifecycle()
+            val journalEntries by viewModel.journalEntries.collectAsStateWithLifecycle()
+            val habits by viewModel.habits.collectAsStateWithLifecycle()
 
             val selectedRoutineCategory by viewModel.selectedRoutineCategory.collectAsStateWithLifecycle()
             val selectedCardCategory by viewModel.selectedCardCategory.collectAsStateWithLifecycle()
@@ -51,6 +54,8 @@ class MainActivity : ComponentActivity() {
                             title = when (currentTab) {
                                 ScreenTab.Routines -> "Visual Routines"
                                 ScreenTab.Cards -> "AAC Cards"
+                                ScreenTab.Habits -> "Daily Habit Tracker"
+                                ScreenTab.Journal -> "Safe Space Journal"
                                 ScreenTab.Sensory -> "Grounding & Battery"
                                 ScreenTab.Settings -> "Sensory Settings"
                             },
@@ -96,6 +101,24 @@ class MainActivity : ComponentActivity() {
                                     onOpenAddDialog = { showAddCardDialog = true }
                                 )
                             }
+                            ScreenTab.Habits -> {
+                                DailyHabitTrackerScreen(
+                                    habits = habits,
+                                    onToggleHabit = { viewModel.toggleHabit(it) },
+                                    onAddHabit = { title, desc, icon -> viewModel.addHabit(title, desc, icon) },
+                                    onDeleteHabit = { viewModel.deleteHabit(it) }
+                                )
+                            }
+                            ScreenTab.Journal -> {
+
+                                SafeSpaceJournalScreen(
+                                    journalEntries = journalEntries,
+                                    onAddEntry = { emoji, title, text, isVoice ->
+                                        viewModel.addJournalEntry(emoji, title, text, isVoice)
+                                    },
+                                    onDeleteEntry = { viewModel.deleteJournalEntry(it) }
+                                )
+                            }
                             ScreenTab.Sensory -> {
                                 SensoryCheckInScreen(
                                     sensoryLogs = sensoryLogs,
@@ -110,11 +133,13 @@ class MainActivity : ComponentActivity() {
                                     onUpdateThemePalette = { viewModel.updateThemePalette(it) },
                                     onUpdateHighContrast = { viewModel.updateHighContrast(it) },
                                     onUpdateReduceAnimations = { viewModel.updateReduceAnimations(it) },
+                                    onUpdateFocusMode = { viewModel.updateFocusMode(it) },
                                     onUpdateFontScale = { viewModel.updateFontScale(it) },
                                     onUpdateSpeechSettings = { pitch, rate ->
                                         viewModel.updateSpeechSettings(pitch, rate)
                                     },
-                                    onTestVoice = { viewModel.speakPhrase(it) }
+                                    onTestVoice = { viewModel.speakPhrase(it) },
+                                    onExportCsvData = { viewModel.generateExportCsvData() }
                                 )
                             }
                         }
@@ -140,10 +165,21 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (showAddStepDialog) {
+                        val context = LocalContext.current
                         AddRoutineStepDialog(
                             defaultCategory = selectedRoutineCategory,
-                            onAddStep = { cat, title, desc, mins, icon ->
-                                viewModel.addCustomStep(cat, title, desc, mins, icon)
+                            onAddStep = { cat, title, desc, mins, icon, rHour, rMin, hasRem ->
+                                viewModel.addCustomStep(
+                                    context = context,
+                                    category = cat,
+                                    title = title,
+                                    description = desc,
+                                    durationMinutes = mins,
+                                    iconName = icon,
+                                    reminderHour = rHour,
+                                    reminderMinute = rMin,
+                                    hasReminder = hasRem
+                                )
                             },
                             onDismiss = { showAddStepDialog = false }
                         )

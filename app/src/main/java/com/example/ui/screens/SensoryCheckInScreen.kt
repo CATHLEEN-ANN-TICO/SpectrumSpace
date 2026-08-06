@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.sp
 import com.example.data.db.SensoryLogEntity
 import com.example.ui.components.BoxBreathingSection
 import com.example.ui.components.Grounding54321Section
+import com.example.ui.components.SensoryBatteryComposable
+import com.example.ui.components.SensoryHistoryChartCard
 import com.example.ui.components.TactileFidgetSection
 import com.example.ui.theme.BatteryHigh
 import com.example.ui.theme.BatteryLow
@@ -53,7 +55,22 @@ fun SensoryCheckInScreen(
         verticalArrangement = Arrangement.spacedBy(18.dp),
         contentPadding = PaddingValues(top = 12.dp, bottom = 90.dp)
     ) {
-        // --- SECTION 1: Interactive Sensory Battery Tracker ---
+        // --- SECTION 0: Sensory Battery Color-Coded Scale Component ---
+        item {
+            SensoryBatteryComposable(
+                currentEnergy = sliderValue.toInt(),
+                onEnergySelected = { percent, state ->
+                    sliderValue = percent.toFloat()
+                    selectedState = state
+                }
+            )
+        }
+
+        // --- SECTION 1: Interactive Sensory Battery Slider Tracker ---
+        item {
+            SensoryHistoryChartCard(sensoryLogs = sensoryLogs)
+        }
+
         item {
             Card(
                 modifier = Modifier

@@ -5,10 +5,13 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.TaskAlt
 import androidx.compose.material.icons.filled.SelfImprovement
 import androidx.compose.material.icons.filled.Settings
+
 import androidx.compose.material.icons.outlined.ChatBubbleOutline
 import androidx.compose.material.icons.outlined.Checklist
 import androidx.compose.material.icons.outlined.SelfImprovement
@@ -24,6 +27,8 @@ import androidx.compose.ui.unit.sp
 sealed class ScreenTab(val route: String, val label: String, val icon: ImageVector) {
     object Routines : ScreenTab("routines", "Routines", Icons.Filled.Checklist)
     object Cards : ScreenTab("cards", "AAC Cards", Icons.Filled.ChatBubbleOutline)
+    object Habits : ScreenTab("habits", "Habits", Icons.Filled.TaskAlt)
+    object Journal : ScreenTab("journal", "Journal", Icons.Filled.Book)
     object Sensory : ScreenTab("sensory", "Grounding", Icons.Filled.SelfImprovement)
     object Settings : ScreenTab("settings", "Settings", Icons.Filled.Settings)
 }
@@ -36,9 +41,12 @@ fun SensoryBottomNav(
     val tabs = listOf(
         ScreenTab.Routines,
         ScreenTab.Cards,
+        ScreenTab.Habits,
+        ScreenTab.Journal,
         ScreenTab.Sensory,
         ScreenTab.Settings
     )
+
 
     NavigationBar(
         modifier = Modifier
